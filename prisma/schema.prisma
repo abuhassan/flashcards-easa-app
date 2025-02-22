@@ -1,0 +1,54 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String?
+  email         String      @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  flashcards    Flashcard[]
+  progress      Progress[]
+}
+
+model Flashcard {
+  id          String     @id @default(cuid())
+  question    String
+  answer      String
+  module      String     // EASA Part 66 module number
+  subModule   String?    // Sub-module reference
+  difficulty  String     @default("medium")
+  tags        String[]   // For categorizing cards
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  progress    Progress[]
+}
+
+model Progress {
+  id          String    @id @default(cuid())
+  status      String    @default("new") // new, learning, reviewing, mastered
+  nextReview  DateTime?
+  reviewCount Int       @default(0)
+  lastScore   Int?      // 1-5 rating of difficulty
+  flashcardId String
+  userId      String
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([flashcardId])
+}
