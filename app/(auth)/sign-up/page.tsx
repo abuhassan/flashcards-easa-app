@@ -1,17 +1,17 @@
-// app/(auth)/sign-in/page.tsx
+// app/(auth)/sign-up/page.tsx
 import { Metadata } from 'next';
-import SignInForm from './sign-in-form';
+import SignUpForm from './sign-up-form';
 
 export const metadata: Metadata = {
-  title: 'Sign In | EASA Flashcards',
-  description: 'Sign in to your EASA Flashcards account',
+  title: 'Sign Up | EASA Flashcards',
+  description: 'Create a new EASA Flashcards account',
 };
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <div className="flex h-screen w-full items-center justify-center p-4">
       <div className="mx-auto w-full max-w-md">
-        <SignInForm />
+        <SignUpForm />
       </div>
     </div>
   );

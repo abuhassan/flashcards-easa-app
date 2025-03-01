@@ -1,5 +1,5 @@
 // lib/dashboard.ts
-import { prisma } from "./db"
+import  prisma  from "@/lib/prisma";
 
 export async function getDashboardStats(userId: string) {
   const today = new Date()

@@ -1,39 +1,33 @@
 // app/layout.tsx
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Navbar } from "@/components/navbar"
-import { SessionProvider } from "../components/session-provider"
-import "./globals.css"
+import './globals.css';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { AuthProvider } from './providers';
+import { ThemeProvider } from './providers/theme-provider';
+import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ['latin'] });
 
-export const metadata = {
-  title: "EASA Part 66 Flashcards",
-  description: "Study and prepare for EASA Part 66 certification",
-}
+export const metadata: Metadata = {
+  title: 'EASA Flashcards',
+  description: 'Study for your EASA Part 66 exams with our advanced flashcard system',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <main className="min-h-screen bg-background">
-              <Navbar />
-              {children}
-            </main>
-          </ThemeProvider>
-        </SessionProvider>
+      <body className={`${inter.className} min-h-screen bg-background`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-right" />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
