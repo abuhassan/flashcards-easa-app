@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,46 +8,86 @@ datasource db {
 }
 
 model User {
-  id            String      @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String
-  email         String      @unique
+  email         String       @unique
   emailVerified DateTime?
   password      String?
   image         String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   flashcards    Flashcard[]
   progress      Progress[]
+  userModules   UserModule[]
 }
 
 model Flashcard {
   id          String     @id @default(cuid())
   question    String
   answer      String
-  module      String     // EASA Part 66 module number
-  subModule   String?    // Sub-module reference
   difficulty  String     @default("medium")
-  tags        String[]   // For categorizing cards
+  tags        String[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   userId      String
+  moduleId    String
+  subModuleId String?
+  module      Module     @relation(fields: [moduleId], references: [id])
+  subModule   SubModule? @relation(fields: [subModuleId], references: [id])
   user        User       @relation(fields: [userId], references: [id])
   progress    Progress[]
 }
 
 model Progress {
   id          String    @id @default(cuid())
-  status      String    @default("new") // new, learning, reviewing, mastered
+  status      String    @default("new")
   nextReview  DateTime?
   reviewCount Int       @default(0)
-  lastScore   Int?      // 1-5 rating of difficulty
+  lastScore   Int?
   flashcardId String
   userId      String
-  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([flashcardId])
+}
+
+model Module {
+  id          String       @id @default(cuid())
+  number      String
+  title       String
+  description String?
+  category    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  flashcards  Flashcard[]
+  subModules  SubModule[]
+  userModules UserModule[]
+}
+
+model SubModule {
+  id         String      @id @default(cuid())
+  number     String
+  title      String
+  moduleId   String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  flashcards Flashcard[]
+  module     Module      @relation(fields: [moduleId], references: [id])
+}
+
+model UserModule {
+  id        String   @id @default(cuid())
+  userId    String
+  moduleId  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  module    Module   @relation(fields: [moduleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, moduleId])
 }

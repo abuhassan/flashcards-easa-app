@@ -1,77 +1,47 @@
-// prisma/seed.ts
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-import { fileURLToPath } from 'url'
-import { dirname } from 'path'
+import { PrismaClient } from "@prisma/client";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  // Create test user
-  const hashedPassword = await bcrypt.hash('test123', 12)
-  const user = await prisma.user.upsert({
-    where: { email: 'test@example.com' },
-    update: {},
-    create: {
-      email: 'test@example.com',
-      name: 'Test User',
-      password: hashedPassword,
-    },
-  })
+  // Insert Modules
+  await prisma.module.createMany({
+    data: [
+      { id: "mod1", number: "1", title: "Mathematics", description: "Basic mathematical principles relevant to aviation engineering.", category: "Science" },
+      { id: "mod2", number: "2", title: "Physics", description: "Physics principles required for aircraft maintenance.", category: "Science" },
+      { id: "mod3", number: "3", title: "Electrical Fundamentals", description: "Covers fundamental electrical concepts in aviation.", category: "Engineering" }
+    ],
+    skipDuplicates: true
+  });
 
-  // Create sample flashcards
-  const flashcards = await Promise.all([
-    prisma.flashcard.create({
-      data: {
-        question: 'What is the purpose of EASA Part-66?',
-        answer: 'EASA Part-66 establishes requirements for aircraft maintenance licenses and sets standards for aircraft maintenance technicians.',
-        module: '1',
-        subModule: '1.1',
-        difficulty: 'medium',
-        tags: ['regulations', 'basics'],
-        userId: user.id,
-      },
-    }),
-    prisma.flashcard.create({
-      data: {
-        question: 'Define "Aircraft Basic Mass"',
-        answer: 'The mass of the aircraft ready for a specific type of operation, excluding usable fuel and payload but including permanent ballast, unusable fuel, full operating fluids, and full engine oil.',
-        module: '8',
-        subModule: '8.2',
-        difficulty: 'hard',
-        tags: ['mass', 'balance'],
-        userId: user.id,
-      },
-    }),
-  ])
+  // Insert Submodules
+  await prisma.subModule.createMany({
+    data: [
+      { id: "sub1", moduleId: "mod1", number: "1.1", title: "Basic Algebra" },
+      { id: "sub2", moduleId: "mod1", number: "1.2", title: "Trigonometry" },
+      { id: "sub3", moduleId: "mod2", number: "2.1", title: "Kinematics" },
+      { id: "sub4", moduleId: "mod2", number: "2.2", title: "Dynamics" },
+      { id: "sub5", moduleId: "mod3", number: "3.1", title: "Ohm’s Law" },
+      { id: "sub6", moduleId: "mod3", number: "3.2", title: "Capacitors and Inductors" }
+    ],
+    skipDuplicates: true
+  });
 
-  // Create progress records
-  await Promise.all(
-    flashcards.map((flashcard) =>
-      prisma.progress.create({
-        data: {
-          userId: user.id,
-          flashcardId: flashcard.id,
-          status: 'learning',
-          reviewCount: 1,
-          lastScore: 3,
-          nextReview: new Date(Date.now() + 24 * 60 * 60 * 1000), // Next day
-        },
-      })
-    )
-  )
+  // Insert Flashcards
+  await prisma.flashcard.createMany({
+    data: [
+      { id: "flash1", moduleId: "mod1", subModuleId: "sub1", userId: "user1", question: "What is the quadratic formula?", answer: "x = (-b ± √(b² - 4ac)) / 2a" },
+      { id: "flash2", moduleId: "mod1", subModuleId: "sub2", userId: "user1", question: "What is the sine rule in trigonometry?", answer: "a/sin(A) = b/sin(B) = c/sin(C)" },
+      { id: "flash3", moduleId: "mod2", subModuleId: "sub3", userId: "user1", question: "What is the formula for velocity?", answer: "Velocity = Displacement / Time" },
+      { id: "flash4", moduleId: "mod2", subModuleId: "sub4", userId: "user1", question: "State Newton’s Second Law of Motion.", answer: "Force = Mass × Acceleration (F = ma)" },
+      { id: "flash5", moduleId: "mod3", subModuleId: "sub5", userId: "user1", question: "What is Ohm’s Law?", answer: "V = IR (Voltage = Current × Resistance)" },
+      { id: "flash6", moduleId: "mod3", subModuleId: "sub6", userId: "user1", question: "What happens when a capacitor is connected to a DC circuit?", answer: "Initially, it allows current to flow, but eventually, it acts as an open circuit." }
+    ],
+    skipDuplicates: true
+  });
 
-  console.log('Seed data created successfully')
+  console.log("Test data inserted successfully!");
 }
 
 main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .catch(e => console.error(e))
+  .finally(() => prisma.$disconnect());
