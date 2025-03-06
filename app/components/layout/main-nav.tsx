@@ -20,22 +20,22 @@ const navItems: NavItem[] = [
   },
   {
     title: "Modules",
-    href: "/modules",
+    href: "/dashboard/modules",
     icon: Layers,
   },
   {
     title: "Study",
-    href: "/study",
+    href: "/dashboard/study",
     icon: Book,
   },
   {
     title: "Progress",
-    href: "/progress",
+    href: "/dashboard/progress",
     icon: BarChart,
   },
   {
     title: "Settings",
-    href: "/settings",
+    href: "dashboard//settings",
     icon: Settings,
   },
 ];

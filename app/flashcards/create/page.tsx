@@ -5,7 +5,7 @@ import { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { FlashcardForm } from "../../components/flashcards/flashcard-form";
+import { FlashcardForm } from "../../components/flashcards/temp-flashcard-form";
 
 interface PageProps {
   searchParams: Promise<{ moduleId?: string; subModuleId?: string }>; // ✅ Fix: Ensure searchParams is awaited

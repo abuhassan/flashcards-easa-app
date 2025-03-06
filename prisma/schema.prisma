@@ -14,17 +14,23 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
+  xpPoints          Int         @default(0)
+  level             Int         @default(1)
+  streak            Int         @default(0)
+  lastActive        DateTime    @default(now())
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   flashcards    Flashcard[]
   progress      Progress[]
   userModules   UserModule[]
+
 }
 
 model Flashcard {
   id          String     @id @default(cuid())
   question    String
   answer      String
+  approved    Boolean    @default(false)
   difficulty  String     @default("medium")
   tags        String[]
   createdAt   DateTime   @default(now())
@@ -46,6 +52,9 @@ model Progress {
   lastScore   Int?
   flashcardId String
   userId      String
+  confidenceLevel Int       @default(0)
+  isLearned      Boolean    @default(false)
+  isFavorite     Boolean    @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
