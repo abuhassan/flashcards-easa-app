@@ -1,6 +1,5 @@
 'use client';
 
-// app/dashboard/study/session/page.tsx
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -22,41 +21,15 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { 
+  startStudySession,
+  getFlashcardsForStudy,
+  recordFlashcardResult,
+  completeStudySession
+} from '@/app/actions/study-actions';
 
-// Sample flashcard data - in a real app, this would come from your database
-const flashcardData = {
-  'module-1': [
-    { id: 1, front: 'What is the formula for the area of a circle?', back: 'A = πr²', topic: 'Geometry', difficulty: 'medium' },
-    { id: 2, front: 'What is the Pythagorean theorem?', back: 'a² + b² = c²', topic: 'Geometry', difficulty: 'easy' },
-    { id: 3, front: 'What is the formula for the volume of a cylinder?', back: 'V = πr²h', topic: 'Geometry', difficulty: 'medium' },
-    { id: 4, front: 'What is the formula for calculating sin(A+B)?', back: 'sin(A+B) = sinA·cosB + cosA·sinB', topic: 'Trigonometry', difficulty: 'hard' },
-    { id: 5, front: 'How do you solve a quadratic equation?', back: 'Use the quadratic formula: x = (-b ± √(b² - 4ac)) / 2a', topic: 'Algebra', difficulty: 'medium' },
-  ],
-  'module-3': [
-    { id: 1, front: 'What is Ohm\'s Law?', back: 'V = IR, where V is voltage, I is current, and R is resistance', topic: 'DC Circuits', difficulty: 'easy' },
-    { id: 2, front: 'What is the formula for calculating power in a DC circuit?', back: 'P = VI or P = I²R or P = V²/R', topic: 'DC Circuits', difficulty: 'medium' },
-    { id: 3, front: 'What is a capacitor?', back: 'A device that stores electrical energy in an electric field', topic: 'Capacitors', difficulty: 'easy' },
-    { id: 4, front: 'What is the formula for capacitive reactance?', back: 'Xc = 1/(2πfC)', topic: 'Capacitors', difficulty: 'hard' },
-    { id: 5, front: 'What is an inductor?', back: 'A passive electrical component that stores energy in a magnetic field when electric current flows through it', topic: 'Inductors', difficulty: 'medium' },
-  ],
-  'module-4': [
-    { id: 1, front: 'What is a diode?', back: 'A semiconductor device that allows current to flow in one direction only', topic: 'Semiconductors', difficulty: 'easy' },
-    { id: 2, front: 'What is a transistor?', back: 'A semiconductor device used to amplify or switch electronic signals', topic: 'Semiconductors', difficulty: 'medium' },
-    { id: 3, front: 'What is the difference between NPN and PNP transistors?', back: 'NPN uses electrons as carriers, while PNP uses holes. The arrow on the emitter points out for NPN and in for PNP.', topic: 'Semiconductors', difficulty: 'hard' },
-    { id: 4, front: 'What is a PCB?', back: 'Printed Circuit Board - a board that connects electronic components using conductive tracks', topic: 'Printed Circuit Boards', difficulty: 'easy' },
-    { id: 5, front: 'What is the purpose of soldermask on a PCB?', back: 'To protect the copper traces from oxidation and to prevent solder bridges from forming during assembly', topic: 'Printed Circuit Boards', difficulty: 'medium' },
-  ],
-  'module-8': [
-    { id: 1, front: 'What is the standard atmospheric pressure at sea level?', back: '1013.25 hPa (hectopascals) or 29.92 inches of mercury', topic: 'Physics of the Atmosphere', difficulty: 'medium' },
-    { id: 2, front: 'What is lift?', back: 'The aerodynamic force that opposes weight and keeps an aircraft in the air', topic: 'Aerodynamics', difficulty: 'easy' },
-    { id: 3, front: 'What is angle of attack?', back: 'The angle between the chord line of the wing and the relative airflow', topic: 'Aerodynamics', difficulty: 'medium' },
-    { id: 4, front: 'What is the purpose of an aircraft\'s vertical stabilizer?', back: 'To provide directional stability and prevent yaw (side-to-side motion)', topic: 'Flight Stability', difficulty: 'medium' },
-    { id: 5, front: 'What are the three axes of aircraft motion?', back: 'Longitudinal (roll), Lateral (pitch), and Vertical (yaw)', topic: 'Flight Dynamics', difficulty: 'hard' },
-  ],
-};
-
-// Module information
-const moduleInfo = {
+// Module information lookup
+const moduleInfo: Record<string, { number: number, title: string }> = {
   'module-1': { number: 1, title: 'Mathematics' },
   'module-3': { number: 3, title: 'Basic Electricity' },
   'module-4': { number: 4, title: 'Basic Electronics' },
@@ -66,9 +39,11 @@ const moduleInfo = {
 export default function StudySessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const moduleId = searchParams.get('moduleId') || 'module-1';
+  const moduleId = searchParams.get('moduleId');
+  const mode = searchParams.get('mode') || 'normal';
   
-  const [cards, setCards] = useState(flashcardData[moduleId as keyof typeof flashcardData] || []);
+  const [studySessionId, setStudySessionId] = useState<string | null>(null);
+  const [cards, setCards] = useState<any[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -76,22 +51,74 @@ export default function StudySessionPage() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showSessionComplete, setShowSessionComplete] = useState(false);
   const [isSessionPaused, setIsSessionPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const [results, setResults] = useState<{
-    correct: number;
-    incorrect: number;
-    skipped: number;
-    timeSpent: number;
-  }>({
+  const [results, setResults] = useState({
     correct: 0,
     incorrect: 0,
     skipped: 0,
     timeSpent: 0
   });
   
+  // Get the current module info
+  const getModuleInfo = (id: string | null) => {
+    if (!id) return { number: 0, title: 'Unknown Module' };
+    return moduleInfo[id] || { number: 0, title: 'Unknown Module' };
+  };
+  
   const currentCard = cards[currentCardIndex];
-  const moduleTitle = moduleInfo[moduleId as keyof typeof moduleInfo]?.title || 'Unknown Module';
-  const moduleNumber = moduleInfo[moduleId as keyof typeof moduleInfo]?.number || 0;
+  const { number: moduleNumber, title: moduleTitle } = getModuleInfo(moduleId);
+  
+  // Initialize study session and load flashcards
+  useEffect(() => {
+    const initSession = async () => {
+      if (!moduleId) {
+        setError('No module selected');
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        
+        // Start a new study session
+        const sessionResult = await startStudySession(moduleId);
+        
+        if (!sessionResult.success || !sessionResult.data) {
+          setError(sessionResult.error || 'Failed to start study session');
+          setIsLoading(false);
+          return;
+        }
+        
+        setStudySessionId(sessionResult.data.id);
+        
+        // Fetch flashcards for this session
+        const flashcardsResult = await getFlashcardsForStudy(moduleId);
+        
+        if (!flashcardsResult.success) {
+          setError(flashcardsResult.error || 'Failed to fetch flashcards');
+          setIsLoading(false);
+          return;
+        }
+        
+        // TypeScript safety: ensure data exists before setting
+        if (flashcardsResult.data) {
+          setCards(flashcardsResult.data);
+        } else {
+          setCards([]);
+        }
+        
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error initializing study session:', err);
+        setError('An unexpected error occurred');
+        setIsLoading(false);
+      }
+    };
+    
+    initSession();
+  }, [moduleId]);
   
   // Format time as mm:ss
   const formatTime = (milliseconds: number) => {
@@ -114,23 +141,41 @@ export default function StudySessionPage() {
   
   // Update progress when changing cards
   useEffect(() => {
-    setProgress(((currentCardIndex) / cards.length) * 100);
+    if (cards.length > 0) {
+      setProgress(((currentCardIndex) / cards.length) * 100);
+    }
   }, [currentCardIndex, cards.length]);
   
   // Handle card rating (difficulty feedback)
-  const handleCardRating = (rating: 'easy' | 'medium' | 'hard') => {
-    // In a real app, you would update the card's spaced repetition algorithm data here
-    console.log(`Card ${currentCard.id} rated as ${rating}`);
+  const handleCardRating = async (rating: 'easy' | 'medium' | 'hard') => {
+    if (!currentCard || !studySessionId) return;
     
-    // For this example, we'll just track correct/incorrect
-    if (rating === 'easy' || rating === 'medium') {
-      setResults(prev => ({ ...prev, correct: prev.correct + 1 }));
-    } else {
-      setResults(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+    const isCorrect = rating === 'easy' || rating === 'medium';
+    const ratingValue = rating === 'easy' ? 5 : rating === 'medium' ? 3 : 1;
+    
+    try {
+      // Record this flashcard result in the database
+      await recordFlashcardResult({
+        flashcardId: currentCard.id,
+        studySessionId,
+        rating: ratingValue,
+        isCorrect,
+      });
+      
+      // Update local results state
+      if (isCorrect) {
+        setResults(prev => ({ ...prev, correct: prev.correct + 1 }));
+      } else {
+        setResults(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+      }
+      
+      // Move to the next card
+      goToNextCard();
+    } catch (err) {
+      console.error('Error recording flashcard result:', err);
+      // Continue anyway - we don't want to block the user's progress
+      goToNextCard();
     }
-    
-    // Move to the next card or end session
-    goToNextCard();
   };
   
   // Go to the next card
@@ -140,11 +185,7 @@ export default function StudySessionPage() {
       setIsFlipped(false);
     } else {
       // Session complete
-      setResults(prev => ({
-        ...prev,
-        timeSpent: Date.now() - sessionStartTime,
-      }));
-      setShowSessionComplete(true);
+      endSession();
     }
   };
   
@@ -154,12 +195,29 @@ export default function StudySessionPage() {
     goToNextCard();
   };
   
-  // End the session early
-  const endSession = () => {
+  // End the session
+  const endSession = async () => {
+    if (!studySessionId) return;
+    
+    const timeSpent = Date.now() - sessionStartTime;
+    
     setResults(prev => ({
       ...prev,
-      timeSpent: Date.now() - sessionStartTime,
+      timeSpent,
     }));
+    
+    try {
+      // Record session completion in the database
+      await completeStudySession(studySessionId, {
+        cardsStudied: currentCardIndex + 1,
+        correctCount: results.correct,
+        incorrectCount: results.incorrect
+      });
+    } catch (err) {
+      console.error('Error completing study session:', err);
+      // Continue anyway to show the completion screen
+    }
+    
     setShowSessionComplete(true);
   };
   
@@ -177,6 +235,39 @@ export default function StudySessionPage() {
   const returnToDashboard = () => {
     router.push('/dashboard');
   };
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container max-w-3xl py-6 text-center">
+        <h1 className="text-2xl font-bold mb-4">Loading Study Session...</h1>
+        <div className="flex justify-center">
+          {/* Add a loading spinner or progress indicator here */}
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (error || !moduleId || cards.length === 0) {
+    return (
+      <div className="container max-w-3xl py-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-muted-foreground mb-6">
+            {error || "Couldn't load flashcards for this module"}
+          </p>
+          <Button asChild>
+            <Link href="/dashboard/study">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Study
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container max-w-3xl py-6">
@@ -257,28 +348,32 @@ export default function StudySessionPage() {
             {!isFlipped ? (
               <Card className="w-full min-h-64">
                 <CardHeader className="flex flex-row justify-between items-center text-sm text-muted-foreground">
-                  <Badge variant="outline">{currentCard.topic}</Badge>
+                  <Badge variant="outline">{currentCard.topic?.name || 'General'}</Badge>
                   <Badge variant="secondary">Tap to flip</Badge>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center p-6 text-center">
-                  <div className="text-lg md:text-xl">{currentCard.front}</div>
+                  <div className="text-lg md:text-xl">{currentCard.question}</div>
                 </CardContent>
                 <CardFooter className="justify-center pt-0">
-                  <div className="text-xs text-muted-foreground">Topic: {currentCard.topic}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Difficulty: {currentCard.difficulty}
+                  </div>
                 </CardFooter>
               </Card>
             ) : (
               /* Back of card */
               <Card className="w-full min-h-64">
                 <CardHeader className="flex flex-row justify-between items-center text-sm text-muted-foreground">
-                  <Badge variant="outline">{currentCard.topic}</Badge>
+                  <Badge variant="outline">{currentCard.topic?.name || 'General'}</Badge>
                   <Badge variant="secondary">Answer</Badge>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center p-6 text-center">
-                  <div className="text-lg md:text-xl">{currentCard.back}</div>
+                  <div className="text-lg md:text-xl">{currentCard.answer}</div>
                 </CardContent>
                 <CardFooter className="justify-center pt-0">
-                  <div className="text-xs text-muted-foreground">Topic: {currentCard.topic}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Difficulty: {currentCard.difficulty}
+                  </div>
                 </CardFooter>
               </Card>
             )}
@@ -384,21 +479,25 @@ export default function StudySessionPage() {
               <p className="text-sm text-muted-foreground mb-2">
                 You've studied {currentCardIndex + 1} cards from Module {moduleNumber}: {moduleTitle}.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Based on your performance, we recommend reviewing the {currentCard.topic} topic again in 3 days.
-              </p>
+              {currentCard && (
+                <p className="text-sm text-muted-foreground">
+                  Based on your performance, we recommend reviewing this module again in 3 days.
+                </p>
+              )}
             </div>
             
             <Separator className="my-4" />
             
             <h3 className="font-medium mb-3">What's next?</h3>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link href={`/dashboard/study/${moduleId}`}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Study This Module Again
-                </Link>
-              </Button>
+              {moduleId && (
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link href={`/dashboard/study/${moduleId}`}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Study This Module Again
+                  </Link>
+                </Button>
+              )}
               <Button variant="outline" className="w-full justify-start" asChild>
                 <Link href="/dashboard/modules">
                   <BookOpen className="mr-2 h-4 w-4" />

@@ -8,84 +8,88 @@ datasource db {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  email         String       @unique
+  email         String         @unique
   emailVerified DateTime?
   password      String?
   image         String?
-  xpPoints          Int         @default(0)
-  level             Int         @default(1)
-  streak            Int         @default(0)
-  lastActive        DateTime    @default(now())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  role          String         @default("USER") // Add this field
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  lastActive    DateTime       @default(now())
+  level         Int            @default(1)
+  streak        Int            @default(0)
+  xpPoints      Int            @default(0)
   flashcards    Flashcard[]
   progress      Progress[]
+  studySessions StudySession[]
   userModules   UserModule[]
-
 }
 
 model Flashcard {
-  id          String     @id @default(cuid())
-  question    String
-  answer      String
-  approved    Boolean    @default(false)
-  difficulty  String     @default("medium")
-  tags        String[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  userId      String
-  moduleId    String
-  subModuleId String?
-  module      Module     @relation(fields: [moduleId], references: [id])
-  subModule   SubModule? @relation(fields: [subModuleId], references: [id])
-  user        User       @relation(fields: [userId], references: [id])
-  progress    Progress[]
+  id           String        @id @default(cuid())
+  question     String
+  answer       String
+  difficulty   String        @default("medium")
+  tags         String[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  userId       String
+  moduleId     String
+  subModuleId  String?
+  approved     Boolean       @default(false)
+  module       Module        @relation(fields: [moduleId], references: [id])
+  subModule    SubModule?    @relation(fields: [subModuleId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  progress     Progress[]
+  studyRecords StudyRecord[]
 }
 
 model Progress {
-  id          String    @id @default(cuid())
-  status      String    @default("new")
-  nextReview  DateTime?
-  reviewCount Int       @default(0)
-  lastScore   Int?
-  flashcardId String
-  userId      String
+  id              String    @id @default(cuid())
+  status          String    @default("new")
+  nextReview      DateTime?
+  reviewCount     Int       @default(0)
+  lastScore       Int?
+  flashcardId     String
+  userId          String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   confidenceLevel Int       @default(0)
-  isLearned      Boolean    @default(false)
-  isFavorite     Boolean    @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
-  user        User      @relation(fields: [userId], references: [id])
+  isFavorite      Boolean   @default(false)
+  isLearned       Boolean   @default(false)
+  flashcard       Flashcard @relation(fields: [flashcardId], references: [id])
+  user            User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([flashcardId])
 }
 
 model Module {
-  id          String       @id @default(cuid())
-  number      String
-  title       String
-  description String?
-  category    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  flashcards  Flashcard[]
-  subModules  SubModule[]
-  userModules UserModule[]
+  id           String         @id @default(cuid())
+  number       String
+  title        String
+  description  String?
+  category     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  flashcards   Flashcard[]
+  StudySession StudySession[]
+  subModules   SubModule[]
+  userModules  UserModule[]
 }
 
 model SubModule {
-  id         String      @id @default(cuid())
-  number     String
-  title      String
-  moduleId   String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  flashcards Flashcard[]
-  module     Module      @relation(fields: [moduleId], references: [id])
+  id           String         @id @default(cuid())
+  number       String
+  title        String
+  moduleId     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  flashcards   Flashcard[]
+  StudySession StudySession[]
+  module       Module         @relation(fields: [moduleId], references: [id])
 }
 
 model UserModule {
@@ -99,4 +103,34 @@ model UserModule {
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, moduleId])
+}
+
+model StudySession {
+  id             String        @id @default(cuid())
+  userId         String
+  startTime      DateTime      @default(now())
+  endTime        DateTime?
+  cardsStudied   Int           @default(0)
+  correctCount   Int           @default(0)
+  incorrectCount Int           @default(0)
+  moduleId       String?
+  subModuleId    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  records        StudyRecord[]
+  module         Module?       @relation(fields: [moduleId], references: [id])
+  subModule      SubModule?    @relation(fields: [subModuleId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+}
+
+model StudyRecord {
+  id             String       @id @default(cuid())
+  flashcardId    String
+  studySessionId String
+  rating         Int
+  isCorrect      Boolean      @default(false)
+  timeSpent      Int?
+  createdAt      DateTime     @default(now())
+  flashcard      Flashcard    @relation(fields: [flashcardId], references: [id])
+  studySession   StudySession @relation(fields: [studySessionId], references: [id])
 }

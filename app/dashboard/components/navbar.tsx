@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOut } from '@/lib/auth';
+import { signOutAction } from '@/app/actions/auth-actions';
 import { 
   Menu,
   X, 
@@ -59,9 +60,16 @@ export default function Navbar({ user }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push('/');
-    router.refresh();
+    try {
+      // Call the server action
+      await signOutAction();
+      // The redirect will be handled by the server action
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Fallback client-side navigation if server action fails
+      router.push('/');
+      router.refresh();
+    }
   };
   
   const handleSearch = (e: React.FormEvent) => {

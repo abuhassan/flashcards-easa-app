@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
+    "seed-easa": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-easa-modules.ts",
+    "reset-admin-password": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/reset-admin-password.ts",
+    "get-admin-id": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/get-admin-id.ts",
+    "check-modules" : "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/check-modules.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -64,7 +68,7 @@
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
-    "typescript": "^5"
+    "typescript": "^5.8.2"
   },
   "resolutions": {
     "@auth/core": "0.37.2"
