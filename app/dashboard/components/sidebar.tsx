@@ -15,7 +15,8 @@ import {
   Clock,
   Zap,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ListChecks
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,12 @@ const navigation = [
     href: '/dashboard/flashcards/create', 
     icon: PlusCircle,
     description: 'Add new flashcards to your collection'
+  },
+  { 
+    name: 'Quizzes', 
+    href: '/dashboard/quizzes',  // Ensure this route exists
+    icon: ListChecks,  // Using ListChecks as the icon
+    description: 'Test your knowledge with quizzes'
   },
   { 
     name: 'Analytics', 

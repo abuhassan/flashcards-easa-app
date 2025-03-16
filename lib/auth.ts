@@ -1,117 +1,86 @@
-// auth.ts
-import NextAuth from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import bcrypt from 'bcryptjs';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import prisma from '@/lib/prisma';
-import { JWT } from 'next-auth/jwt'; // Add this import
+import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcryptjs";
+import type { NextAuthOptions } from "next-auth";
 
-// Extend the types
-declare module 'next-auth' {
-  interface User {
-    role?: string;
-  }
-  
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name: string | null;
-      image?: string | null;
-      role?: string;
-    }
-  }
-}
+import CredentialsProvider from "next-auth/providers/credentials";
 
-// JWT type extension
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id?: string;
-    role?: string;
-  }
-}
+const prisma = new PrismaClient();
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "email", placeholder: "example@example.com" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          console.error("❌ Missing email or password");
+          throw new Error("Email and password are required");
         }
 
-        const email = credentials.email as string;
-        const password = credentials.password as string;
+        console.log(`🔍 Searching for user with email: ${credentials.email}`);
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email }
-          });
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
 
-          if (!user || !user.password) {
-            console.log('User not found or has no password');
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            console.log('Invalid password');
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            emailVerified: user.emailVerified,
-            // Use optional chaining for role until the schema is updated
-            role: (user as any).role || 'USER'  // Default to 'USER' if not present
-          };
-        } catch (error) {
-          console.error('Error during authorization:', error);
-          return null;
+        if (!user) {
+          console.error(`❌ User not found: ${credentials.email}`);
+          throw new Error("Invalid credentials");
         }
-      }
-    })
+
+        console.log("✅ User found. Checking password...");
+
+        if (!user.password) {
+          console.error(`⚠️ User exists but has no password set.`);
+          throw new Error("No password set for this account. Please reset your password.");
+        }
+
+        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+
+        if (!passwordMatch) {
+          console.error("❌ Password does not match");
+          throw new Error("Invalid credentials");
+        }
+
+        console.log("✅ Password match! Returning user.");
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
   ],
   pages: {
-    signIn: '/sign-in',
+    signIn: "/auth/signin", // Customize sign-in page if needed
   },
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
-        // Handle role safely
-        if ('role' in user) {
-          token.role = user.role;
-        }
+        token.role = user.role;
       }
       return token;
     },
-    session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string;
-        // Add role to session
-        if ('role' in token) {
-          session.user.role = token.role as string;
-        }
+    async session({ session, token }) {
+      if (token) {
+        session.user = {
+          id: token.id,
+          email: token.email,
+          role: token.role,
+        };
       }
       return session;
-    }
+    },
   },
-  debug: process.env.NODE_ENV === 'development',
-});
+  secret: process.env.NEXTAUTH_SECRET,
+};

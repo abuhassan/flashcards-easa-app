@@ -25,6 +25,8 @@ model User {
   progress      Progress[]
   studySessions StudySession[]
   userModules   UserModule[]
+  QuizAttempt   QuizAttempt[]
+  QuizAnswer    QuizAnswer[]
 }
 
 model Flashcard {
@@ -133,4 +135,59 @@ model StudyRecord {
   createdAt      DateTime     @default(now())
   flashcard      Flashcard    @relation(fields: [flashcardId], references: [id])
   studySession   StudySession @relation(fields: [studySessionId], references: [id])
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  moduleId    String
+  difficulty  String // "easy", "medium", "hard"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  // Relations
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+}
+
+model QuizQuestion {
+  id     String @id @default(cuid())
+  quizId String
+  text   String
+  order  Int
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  // 🔹 Add this relation back to `QuizAnswer`
+  answers QuizAnswer[]
+}
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  quizId      String
+  userId      String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  score       Float?
+  isPassed    Boolean?
+
+  quiz Quiz @relation(fields: [quizId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  answers QuizAnswer[]
+}
+
+model QuizAnswer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  questionId String
+  userId     String
+  answer     String
+  isCorrect  Boolean
+  createdAt  DateTime @default(now())
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id]) // Fixed reference
+  user     User         @relation(fields: [userId], references: [id])
 }
