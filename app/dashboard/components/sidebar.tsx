@@ -48,6 +48,12 @@ const navigation = [
     description: 'Add new flashcards to your collection'
   },
   { 
+    name: 'Quizzes', // ✅ Added Quizzes Link
+    href: '/dashboard/quizzes', 
+    icon: FileText, // You can change the icon if needed
+    description: 'Test your knowledge with quizzes'
+  },
+  { 
     name: 'Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart,
