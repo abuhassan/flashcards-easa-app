@@ -14,38 +14,34 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
-  role          String         @default("USER") // Add this field
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  lastActive    DateTime       @default(now())
-  level         Int            @default(1)
-  streak        Int            @default(0)
-  xpPoints      Int            @default(0)
+  xpPoints          Int         @default(0)
+  level             Int         @default(1)
+  streak            Int         @default(0)
+  lastActive        DateTime    @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   flashcards    Flashcard[]
   progress      Progress[]
-  studySessions StudySession[]
   userModules   UserModule[]
-  QuizAttempt   QuizAttempt[]
-  QuizAnswer    QuizAnswer[]
+
 }
 
 model Flashcard {
-  id           String        @id @default(cuid())
-  question     String
-  answer       String
-  difficulty   String        @default("medium")
-  tags         String[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  userId       String
-  moduleId     String
-  subModuleId  String?
-  approved     Boolean       @default(false)
-  module       Module        @relation(fields: [moduleId], references: [id])
-  subModule    SubModule?    @relation(fields: [subModuleId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
-  progress     Progress[]
-  studyRecords StudyRecord[]
+  id          String     @id @default(cuid())
+  question    String
+  answer      String
+  approved    Boolean    @default(false)
+  difficulty  String     @default("medium")
+  tags        String[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+  moduleId    String
+  subModuleId String?
+  module      Module     @relation(fields: [moduleId], references: [id])
+  subModule   SubModule? @relation(fields: [subModuleId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+  progress    Progress[]
 }
 
 model Progress {
@@ -105,89 +101,4 @@ model UserModule {
   user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, moduleId])
-}
-
-model StudySession {
-  id             String        @id @default(cuid())
-  userId         String
-  startTime      DateTime      @default(now())
-  endTime        DateTime?
-  cardsStudied   Int           @default(0)
-  correctCount   Int           @default(0)
-  incorrectCount Int           @default(0)
-  moduleId       String?
-  subModuleId    String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  records        StudyRecord[]
-  module         Module?       @relation(fields: [moduleId], references: [id])
-  subModule      SubModule?    @relation(fields: [subModuleId], references: [id])
-  user           User          @relation(fields: [userId], references: [id])
-}
-
-model StudyRecord {
-  id             String       @id @default(cuid())
-  flashcardId    String
-  studySessionId String
-  rating         Int
-  isCorrect      Boolean      @default(false)
-  timeSpent      Int?
-  createdAt      DateTime     @default(now())
-  flashcard      Flashcard    @relation(fields: [flashcardId], references: [id])
-  studySession   StudySession @relation(fields: [studySessionId], references: [id])
-}
-
-model Quiz {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  moduleId    String
-  difficulty  String // "easy", "medium", "hard"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-
-  // Relations
-  questions QuizQuestion[]
-  attempts  QuizAttempt[]
-}
-
-model QuizQuestion {
-  id     String @id @default(cuid())
-  quizId String
-  text   String
-  order  Int
-
-  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
-
-  // 🔹 Add this relation back to `QuizAnswer`
-  answers QuizAnswer[]
-}
-
-model QuizAttempt {
-  id          String    @id @default(cuid())
-  quizId      String
-  userId      String
-  startedAt   DateTime  @default(now())
-  completedAt DateTime?
-  score       Float?
-  isPassed    Boolean?
-
-  quiz Quiz @relation(fields: [quizId], references: [id])
-  user User @relation(fields: [userId], references: [id])
-
-  answers QuizAnswer[]
-}
-
-model QuizAnswer {
-  id         String   @id @default(cuid())
-  attemptId  String
-  questionId String
-  userId     String
-  answer     String
-  isCorrect  Boolean
-  createdAt  DateTime @default(now())
-
-  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question QuizQuestion @relation(fields: [questionId], references: [id]) // Fixed reference
-  user     User         @relation(fields: [userId], references: [id])
 }

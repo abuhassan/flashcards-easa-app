@@ -49,12 +49,6 @@ const navigation = [
     description: 'Add new flashcards to your collection'
   },
   { 
-    name: 'Quizzes', 
-    href: '/dashboard/quizzes',  // Ensure this route exists
-    icon: ListChecks,  // Using ListChecks as the icon
-    description: 'Test your knowledge with quizzes'
-  },
-  { 
     name: 'Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart,
